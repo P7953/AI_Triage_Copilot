@@ -48,20 +48,22 @@ export default async function DashboardPage({
   };
   const orderBy = SORT_TO_ORDER_BY[sort] ?? SORT_TO_ORDER_BY.newest;
 
-  const [issues, totalCount] = await Promise.all([
-    prisma.issue.findMany({
-      where,
-      orderBy,
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      include: {
-        reporter: { select: { name: true } },
-        assignee: { select: { name: true } },
-      },
-    }),
-    prisma.issue.count({ where }),
-  ]);
+  const totalCount = await prisma.issue.count({ where });
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  // Clamp so a stale/hand-edited ?page= beyond the last page shows the last
+  // page of real results instead of a misleading "no issues yet" message.
+  const clampedPage = Math.min(page, totalPages);
+
+  const issues = await prisma.issue.findMany({
+    where,
+    orderBy,
+    skip: (clampedPage - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
+    include: {
+      reporter: { select: { name: true } },
+      assignee: { select: { name: true } },
+    },
+  });
   const hasActiveFilters = Boolean(status || category || priority);
 
   return (
@@ -111,7 +113,7 @@ export default async function DashboardPage({
         </ul>
       )}
 
-      <Pagination page={page} totalPages={totalPages} searchParams={{ status, category, priority, sort }} />
+      <Pagination page={clampedPage} totalPages={totalPages} searchParams={{ status, category, priority, sort }} />
     </div>
   );
 }

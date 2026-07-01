@@ -171,6 +171,47 @@ the model actually used.
   viewport on the dashboard; layouts use flex-wrap rather than fixed-width
   grids/tables.
 
+## Hardening
+
+- **Security headers** (`next.config.ts`): `Content-Security-Policy`,
+  `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`,
+  `Permissions-Policy`, `Strict-Transport-Security`, and `poweredByHeader:
+  false`. The CSP is `default-src 'self'` plus `'unsafe-inline'` for
+  script/style (a deliberate compromise to avoid nonce-per-request wiring
+  for a small internal tool — there's no third-party script/style/font
+  loading anywhere in the app, so this still blocks arbitrary injected
+  script execution and framing). Verified the full app — login, filters,
+  issue creation + AI triage, XSS-payload rendering — still works correctly
+  under these headers against a production (`next start`) build, not just
+  `next dev`.
+- **`AUTH_TRUST_HOST`:** Auth.js auto-trusts the host on some platforms
+  (Vercel), but not under a plain `next start`; `trustHost: true` is set
+  explicitly in `src/auth.config.ts` rather than relying on that implicit
+  detection.
+- **Input sanitization re-check:** confirmed no `dangerouslySetInnerHTML`
+  anywhere, no raw SQL (`$queryRaw`/`$executeRaw` unused — Prisma
+  parameterizes everything), no `NEXT_PUBLIC_` env vars or `process.env`
+  reads inside client components (nothing server-only leaks to the
+  bundle). Dashboard filter query params are validated against the actual
+  enum values before hitting Prisma, not blindly cast. Verified an
+  XSS-payload-shaped issue title (`<img src=x onerror=...>`) renders as
+  inert text via React's default escaping — no script execution, no
+  injected `<img>` element.
+- **Friendly, non-leaky error messages:** admin actions (status/assign/
+  override) now return a plain `{ error: "Issue not found." }` state
+  instead of throwing when an issue has vanished (e.g. deleted by another
+  admin mid-edit), matching the rest of the app's error-state pattern
+  rather than surfacing a raw exception. Registration also catches the
+  rare race-condition case (two concurrent signups for the same email)
+  and returns the same friendly "already exists" message instead of a raw
+  Prisma constraint error. `requireRole`/`requireUser`'s thrown errors
+  (the actual RBAC boundary) keep deliberately generic messages ("You do
+  not have permission to do this."), and Next.js redacts thrown
+  Server Action errors from the client by default in production.
+- **AI rate limiting:** see [AI triage](#ai-triage) above — 5 issue
+  submissions per 10 minutes per user, since issue creation is what
+  triggers a triage call.
+
 ## Build phases
 
 This project is built in the following order; each phase ends in its own

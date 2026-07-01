@@ -6,13 +6,7 @@ import { requireRole } from "@/lib/session";
 import { updateStatusSchema, assignIssueSchema, overrideTriageSchema } from "@/lib/validations/admin";
 import type { IssueFormState } from "./actions";
 
-async function requireExistingIssue(issueId: string) {
-  const issue = await prisma.issue.findUnique({ where: { id: issueId } });
-  if (!issue) {
-    throw new Error("Issue not found.");
-  }
-  return issue;
-}
+const ISSUE_NOT_FOUND_ERROR: IssueFormState = { error: "Issue not found." };
 
 export async function updateStatusAction(
   issueId: string,
@@ -26,7 +20,8 @@ export async function updateStatusAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid status." };
   }
 
-  const issue = await requireExistingIssue(issueId);
+  const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+  if (!issue) return ISSUE_NOT_FOUND_ERROR;
 
   await prisma.$transaction([
     prisma.issue.update({ where: { id: issueId }, data: { status: parsed.data.status } }),
@@ -56,7 +51,9 @@ export async function assignIssueAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid assignee." };
   }
 
-  const issue = await requireExistingIssue(issueId);
+  const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+  if (!issue) return ISSUE_NOT_FOUND_ERROR;
+
   const newAssigneeId = parsed.data.assigneeId || null;
 
   const [previousAssignee, newAssignee] = await Promise.all([
@@ -102,7 +99,8 @@ export async function overrideTriageAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const issue = await requireExistingIssue(issueId);
+  const issue = await prisma.issue.findUnique({ where: { id: issueId } });
+  if (!issue) return ISSUE_NOT_FOUND_ERROR;
 
   await prisma.$transaction([
     prisma.issue.update({
@@ -132,13 +130,11 @@ export async function overrideTriageAction(
 
 export async function deleteIssueAction(issueId: string): Promise<void> {
   await requireRole("ADMIN");
-  await requireExistingIssue(issueId);
 
-  // Deleting the issue cascades its comments and audit logs (see
-  // prisma/schema.prisma onDelete: Cascade) — there is no separate audit
-  // entry for the deletion itself since it would be destroyed immediately
-  // after being written.
-  await prisma.issue.delete({ where: { id: issueId } });
+  // Idempotent: if it's already gone (e.g. another admin deleted it first),
+  // there's nothing left to do — no need to surface an error for a harmless
+  // race condition.
+  await prisma.issue.deleteMany({ where: { id: issueId } });
 
   revalidatePath("/dashboard");
 }

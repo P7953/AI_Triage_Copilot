@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { registerSchema } from "@/lib/validations/auth";
 
 const PASSWORD_ROUNDS = 12;
@@ -35,12 +36,21 @@ export async function registerAction(
 
   const passwordHash = await bcrypt.hash(password, PASSWORD_ROUNDS);
 
-  // New accounts are always MEMBER; there is no client-controllable path to
-  // ADMIN — that role is only ever set via the seed script or by an admin
-  // acting directly on the database.
-  await prisma.user.create({
-    data: { name, email, passwordHash, role: "MEMBER" },
-  });
+  try {
+    // New accounts are always MEMBER; there is no client-controllable path
+    // to ADMIN — that role is only ever set via the seed script or by an
+    // admin acting directly on the database.
+    await prisma.user.create({
+      data: { name, email, passwordHash, role: "MEMBER" },
+    });
+  } catch (error) {
+    // Race condition fallback: two concurrent registrations for the same
+    // email past the findUnique check above. Same friendly message either way.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: "An account with that email already exists." };
+    }
+    throw error;
+  }
 
   try {
     await signIn("credentials", { email, password, redirectTo: "/dashboard" });
