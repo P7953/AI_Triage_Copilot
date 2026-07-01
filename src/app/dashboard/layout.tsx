@@ -13,9 +13,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-svh flex-col">
       <header className="flex items-center justify-between border-b px-6 py-4">
-        <Link href="/dashboard" className="font-semibold">
-          AI Triage Copilot
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/dashboard" className="font-semibold">
+            AI Triage Copilot
+          </Link>
+          {session.user.role === "ADMIN" && (
+            <Link href="/dashboard/audit" className="text-muted-foreground text-sm hover:text-foreground">
+              Audit log
+            </Link>
+          )}
+        </div>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">
             {session.user.email} · {session.user.role}

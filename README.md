@@ -94,8 +94,23 @@ conditions server-side on every edit, independent of what the UI shows.
 
 AI triage is stubbed in this phase (`src/lib/ai/triage.ts`) — new issues stay
 at the default `triageStatus: PENDING` until Phase 6 wires up the real
-`generateObject` call. Status changes, AI-field overrides, assignment, and
-deletion are admin-only and land in Phase 5.
+`generateObject` call.
+
+## Admin controls and audit log
+
+Status changes, AI-field overrides, assignment, and deletion are admin-only
+(`src/app/dashboard/issues/admin-actions.ts`), each independently gated by
+`requireRole('ADMIN')` server-side — never just hidden in the UI. Every
+status change, override, and (re)assignment writes an `AuditLog` entry
+(actor, action, timestamp); admins can see an issue's own history inline on
+its detail page, or every action across the app at `/dashboard/audit` (also
+re-checked server-side, not just excluded from the nav for members).
+
+Deleting an issue cascades its comments and audit log entries (see
+`onDelete: Cascade` in `prisma/schema.prisma`) — there's no separate "issue
+deleted" log entry, since it would be destroyed the instant it's written. A
+production system might instead make `AuditLog.issueId` optional so deletion
+records outlive the issue; out of scope here.
 
 ## Build phases
 

@@ -11,6 +11,7 @@ import {
 } from "@/components/issue-badges";
 import { EditIssueForm } from "./edit-issue-form";
 import { CommentForm } from "./comment-form";
+import { StatusForm, AssignForm, OverrideTriageForm, DeleteIssueButton } from "./admin-panel";
 
 export default async function IssueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,6 +27,10 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
           orderBy: { createdAt: "asc" },
           include: { author: { select: { name: true } } },
         },
+        auditLogs: {
+          orderBy: { createdAt: "desc" },
+          include: { actor: { select: { name: true } } },
+        },
       },
     }),
   ]);
@@ -35,6 +40,10 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
   }
 
   const canEdit = session?.user.id === issue.reporterId && issue.status === "OPEN";
+  const isAdmin = session?.user.role === "ADMIN";
+  const users = isAdmin
+    ? await prisma.user.findMany({ select: { id: true, name: true, role: true }, orderBy: { name: "asc" } })
+    : [];
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
@@ -93,6 +102,45 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
           defaultTitle={issue.title}
           defaultDescription={issue.description}
         />
+      )}
+
+      {isAdmin && (
+        <div className="flex flex-col gap-4 rounded-lg border p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-medium">Admin controls</h2>
+            <DeleteIssueButton issueId={issue.id} />
+          </div>
+          <div className="flex flex-wrap gap-6">
+            <StatusForm key={`status-${issue.updatedAt.toISOString()}`} issueId={issue.id} currentStatus={issue.status} />
+            <AssignForm
+              key={`assign-${issue.updatedAt.toISOString()}`}
+              issueId={issue.id}
+              currentAssigneeId={issue.assigneeId}
+              users={users}
+            />
+          </div>
+          <OverrideTriageForm
+            key={`override-${issue.updatedAt.toISOString()}`}
+            issueId={issue.id}
+            defaultCategory={issue.aiCategory}
+            defaultPriority={issue.aiPriority}
+            defaultRootCause={issue.aiRootCause}
+            defaultSuggestedStep={issue.aiSuggestedStep}
+          />
+          {issue.auditLogs.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium">Audit log (this issue)</h3>
+              <ul className="flex flex-col gap-2">
+                {issue.auditLogs.map((entry) => (
+                  <li key={entry.id} className="text-muted-foreground text-xs">
+                    <span className="font-medium text-foreground">{entry.actor.name}</span> — {entry.action}{" "}
+                    <span className="italic">({entry.createdAt.toLocaleString()})</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
 
       <div className="flex flex-col gap-4">
