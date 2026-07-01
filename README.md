@@ -39,7 +39,8 @@ See [`.env.example`](.env.example) for the full list. You will need:
   (`DIRECT_URL`, no `-pooler`) from the Neon dashboard's Connection Details.
   The app uses the pooled URL at runtime via the Neon driver adapter
   (`@prisma/adapter-neon`); Prisma Migrate uses the direct URL.
-- An `AUTH_SECRET` (generate with `npx auth secret`)
+- An `AUTH_SECRET` (generate with `openssl rand -base64 32` — note `npx auth secret`
+  resolves to an unrelated npm package and should not be used)
 - An API key for either Groq or Google Gemini, matching `AI_PROVIDER`
 
 ## Database
@@ -58,6 +59,30 @@ npm run db:migrate   # apply migrations (prisma migrate dev)
 npm run db:seed       # (re)seed sample data
 npm run db:studio     # browse the database
 ```
+
+## Authentication and authorization
+
+Auth.js v5 (Credentials provider) with JWT sessions. Enforced at three layers,
+per the spec:
+
+1. **`src/proxy.ts`** (Next.js 16's replacement for `middleware.ts`) — a
+   coarse, DB-free gate that redirects unauthenticated requests to
+   `/dashboard/*` back to `/login`. UX convenience only.
+2. **Every Server Action** — the real boundary. `src/lib/session.ts` exports
+   `getSession()`, `requireUser()`, and `requireRole(role)`, which re-read the
+   session from cookies server-side (never trusting a client-passed value)
+   before any mutation runs.
+3. **UI** — admin-only controls are hidden from members client-side, purely
+   for UX; this is not relied on for security (added in Phase 5).
+
+Passwords are hashed with `bcrypt` (12 rounds). Registration always creates a
+`MEMBER` — there is no client-reachable path to `ADMIN`; that role only comes
+from the seed script or direct database access.
+
+`src/auth.config.ts` holds the shared, Node-dependency-free base config (used
+by both the proxy and the full setup); `src/auth.ts` adds the Credentials
+provider, Prisma lookups, and JWT/session callbacks that embed `id` and `role`
+onto the token and session.
 
 ## Build phases
 
