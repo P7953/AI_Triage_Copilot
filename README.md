@@ -84,6 +84,19 @@ by both the proxy and the full setup); `src/auth.ts` adds the Credentials
 provider, Prisma lookups, and JWT/session callbacks that embed `id` and `role`
 onto the token and session.
 
+## Issues (core CRUD)
+
+Any signed-in user can create an issue (`/dashboard/issues/new`), view the
+full list (`/dashboard`) and any issue's detail page, and comment. Per the
+permission matrix, only the **reporter** can edit their own issue, and only
+while it's still `OPEN` — `src/app/dashboard/issues/actions.ts` re-checks both
+conditions server-side on every edit, independent of what the UI shows.
+
+AI triage is stubbed in this phase (`src/lib/ai/triage.ts`) — new issues stay
+at the default `triageStatus: PENDING` until Phase 6 wires up the real
+`generateObject` call. Status changes, AI-field overrides, assignment, and
+deletion are admin-only and land in Phase 5.
+
 ## Build phases
 
 This project is built in the following order; each phase ends in its own
