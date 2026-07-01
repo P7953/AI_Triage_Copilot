@@ -34,9 +34,30 @@ Open [http://localhost:3000](http://localhost:3000).
 
 See [`.env.example`](.env.example) for the full list. You will need:
 
-- A Neon Postgres project (`DATABASE_URL`, `DIRECT_URL`)
+- A Neon Postgres project — grab both the **pooled** connection string
+  (`DATABASE_URL`, host contains `-pooler`) and the **direct** one
+  (`DIRECT_URL`, no `-pooler`) from the Neon dashboard's Connection Details.
+  The app uses the pooled URL at runtime via the Neon driver adapter
+  (`@prisma/adapter-neon`); Prisma Migrate uses the direct URL.
 - An `AUTH_SECRET` (generate with `npx auth secret`)
 - An API key for either Groq or Google Gemini, matching `AI_PROVIDER`
+
+## Database
+
+Prisma schema lives in [`prisma/schema.prisma`](prisma/schema.prisma):
+`User`, `Issue`, `Comment`, `AuditLog` models plus the `Role`, `Status`,
+`Category`, `Priority`, and `TriageStatus` enums described in the spec.
+
+Prisma 7 no longer reads the connection URL from the schema file — it comes
+from [`prisma.config.ts`](prisma.config.ts) for CLI commands (migrate, seed,
+studio), and from an explicit driver adapter for the app's runtime
+`PrismaClient` (see [`src/lib/prisma.ts`](src/lib/prisma.ts)).
+
+```bash
+npm run db:migrate   # apply migrations (prisma migrate dev)
+npm run db:seed       # (re)seed sample data
+npm run db:studio     # browse the database
+```
 
 ## Build phases
 
@@ -54,9 +75,17 @@ commit:
 9. Tests + CI
 10. Deploy prep + full documentation
 
-## Seeded accounts (added in Phase 2)
+## Seeded accounts
 
-Documented here once the seed script lands.
+The seed script (`prisma/seed.ts`) creates one admin, two members, and six
+sample issues (five triaged with varying confidence, one with
+`triageStatus = FAILED` to exercise the manual-triage fallback UI).
+
+| Role   | Email               | Password    |
+|--------|---------------------|-------------|
+| Admin  | admin@triage.dev    | Admin123!   |
+| Member | alice@triage.dev    | Member123!  |
+| Member | bob@triage.dev      | Member123!  |
 
 ## Architecture, security model, and key decisions
 
