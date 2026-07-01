@@ -143,6 +143,34 @@ the model actually used.
   small team — a higher-traffic deployment would want a shared store like
   Redis instead.
 
+## UI/UX and accessibility
+
+- **Dashboard filter/sort/pagination** (`src/app/dashboard/issue-filters.tsx`,
+  `pagination.tsx`): status/category/priority filters and a sort control are
+  URL search params (`?status=OPEN&sort=priority&page=2`), so results are
+  shareable and back-button-friendly; 10 issues per page.
+- **Loading/error/empty states:** `loading.tsx` (skeletons) for the dashboard
+  and issue detail routes, a dashboard-scoped `error.tsx` boundary with a
+  retry button, custom `not-found.tsx` for both a deleted/missing issue and
+  the app-wide 404, and a distinct empty-state message when filters produce
+  zero results vs. when there are no issues at all.
+- **Footer** (`src/components/footer.tsx`) with clearly-marked
+  `[Your Name]` / GitHub / LinkedIn placeholders — fill these in before
+  submitting/deploying.
+- **Accessibility:** verified with an automated `axe-core` scan (0 violations)
+  across the home, login, register, 404, dashboard, issue detail, and audit
+  log pages, plus manual keyboard-only checks (Tab/Enter/Arrow keys/Escape)
+  for the filter selects and the delete-confirmation dialog. The scan caught
+  two real contrast bugs, since fixed: the shared `Button` `destructive`
+  variant's `bg-destructive/10 + text-destructive` measured 4:1 (below the
+  4.5:1 WCAG AA threshold) and is now a solid `bg-destructive` with white
+  text; the custom `LOW`-priority badge's `bg-muted + text-muted-foreground`
+  measured 4.34:1 and now uses `text-foreground`. A skip-to-content link and
+  a labeled `<nav>` were also added to the dashboard header.
+- **Responsive:** verified no horizontal overflow at a 375px mobile
+  viewport on the dashboard; layouts use flex-wrap rather than fixed-width
+  grids/tables.
+
 ## Build phases
 
 This project is built in the following order; each phase ends in its own
