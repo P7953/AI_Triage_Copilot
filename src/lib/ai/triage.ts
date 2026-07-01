@@ -1,20 +1,12 @@
 import { generateObject } from "ai";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getTriageModel } from "./model";
+import { triageResultSchema } from "./schema";
 
 const MAX_OUTPUT_TOKENS = 500;
 // Gemini structured-output calls on this project's key typically take
 // ~15-20s; keep meaningful headroom above that before treating it as FAILED.
 const TIMEOUT_MS = 30_000;
-
-const triageResultSchema = z.object({
-  category: z.enum(["BUG", "FEATURE", "QUESTION", "PERFORMANCE", "SECURITY", "OTHER"]),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
-  rootCauseHypothesis: z.string(),
-  suggestedFirstStep: z.string(),
-  confidence: z.number().min(0).max(1),
-});
 
 const SYSTEM_PROMPT = `You are an issue-triage assistant for a small software team's bug tracker.
 

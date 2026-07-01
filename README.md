@@ -212,6 +212,41 @@ the model actually used.
   submissions per 10 minutes per user, since issue creation is what
   triggers a triage call.
 
+## Tests and CI
+
+```bash
+npm run test        # Vitest unit tests
+npm run test:watch  # Vitest, watch mode
+npm run test:e2e    # Playwright e2e (needs the dev server's env vars)
+```
+
+- **Unit tests** (Vitest): `src/lib/session.test.ts` covers the RBAC
+  boundary directly — `requireRole`/`requireUser` with `@/auth` mocked out,
+  including the exact scenario the spec calls out: a `MEMBER` calling
+  `requireRole('ADMIN')` throws `ForbiddenError`. `src/lib/ai/schema.test.ts`
+  covers the AI output schema: valid input accepted; invalid category/
+  priority, out-of-range confidence, and missing/malformed fields all
+  rejected.
+- **E2e test** (Playwright): `e2e/login-create-issue.spec.ts` — register,
+  sign out, log back in through the real `/login` form, create an issue,
+  and see the AI triage result. Registers a fresh throwaway account each
+  run rather than reusing the seeded demo users, so it never collides with
+  their AI rate limit or accumulates state on them. Accepts either a real
+  triage result or the graceful `FAILED` state as a pass — the AI's own
+  reliability isn't what this test is checking, only that the app never
+  loses the issue or crashes either way. (In practice this means the test
+  is robust to the Gemini free tier's 20-requests/day cap being hit
+  mid-session, which it — expectedly — was during development.)
+- **CI** (`.github/workflows/ci.yml`): a `test` job (install → typecheck →
+  lint → `npm run test`) that needs no secrets and always runs; a
+  dependent `e2e` job that applies migrations and runs the Playwright test
+  against a real Neon DB + Gemini key, gated on five repo secrets:
+  `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AI_PROVIDER`,
+  `GOOGLE_GENERATIVE_AI_API_KEY` (swap the last one for `GROQ_API_KEY` if
+  `AI_PROVIDER=groq`). Note this runs against the same persistent dev
+  database rather than an ephemeral per-run one — fine at this project's
+  scale, but a real production CI setup would isolate it.
+
 ## Build phases
 
 This project is built in the following order; each phase ends in its own
