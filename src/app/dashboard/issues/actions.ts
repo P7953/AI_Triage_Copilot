@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { createIssueSchema, updateIssueSchema, createCommentSchema } from "@/lib/validations/issue";
 import { triageIssue } from "@/lib/ai/triage";
+import { isOverTriageRateLimit } from "@/lib/ai/rate-limit";
 
 export type IssueFormState = {
   error: string | null;
@@ -16,6 +17,10 @@ export async function createIssueAction(
   formData: FormData,
 ): Promise<IssueFormState> {
   const user = await requireUser();
+
+  if (await isOverTriageRateLimit(user.id)) {
+    return { error: "You're creating issues too quickly. Please wait a few minutes and try again." };
+  }
 
   const parsed = createIssueSchema.safeParse({
     title: formData.get("title"),
