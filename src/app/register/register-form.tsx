@@ -13,37 +13,61 @@ export function RegisterForm() {
   const [state, formAction, pending] = useActionState(registerAction, initialState);
 
   return (
-    <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" type="text" autoComplete="name" required />
+    <form action={formAction} className="flex w-full max-w-sm flex-col gap-5">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Full Name
+        </Label>
+        <Input
+          id="name"
+          name="name"
+          type="text"
+          autoComplete="name"
+          placeholder="John Doe"
+          required
+          className="h-10 px-3"
+        />
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Email Address
+        </Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder="john@example.com"
+          required
+          className="h-10 px-3"
+        />
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Password</Label>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Password (min 8 characters)
+        </Label>
         <Input
           id="password"
           name="password"
           type="password"
           autoComplete="new-password"
+          placeholder="••••••••"
           minLength={8}
           required
+          className="h-10 px-3"
         />
       </div>
       {state.error && (
-        <p role="alert" className="text-sm text-destructive">
+        <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
           {state.error}
-        </p>
+        </div>
       )}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending} className="h-10 px-4 mt-2 font-semibold">
         {pending ? "Creating account..." : "Create account"}
       </Button>
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm text-muted-foreground mt-1">
         Already have an account?{" "}
-        <Link href="/login" className="underline underline-offset-4">
+        <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
           Sign in
         </Link>
       </p>

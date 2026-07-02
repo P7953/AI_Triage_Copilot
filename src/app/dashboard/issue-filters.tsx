@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -52,27 +53,36 @@ export function IssueFilters({
   const hasActiveFilters = Boolean(status || category || priority);
 
   return (
-    <div className="flex flex-wrap items-end gap-4" role="search" aria-label="Filter and sort issues">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="filter-status">Status</Label>
+    <div 
+      className="flex flex-wrap items-end gap-5 rounded-xl border border-border/80 bg-card/60 p-4 shadow-sm backdrop-blur-sm" 
+      role="search" 
+      aria-label="Filter and sort issues"
+    >
+      <div className="flex flex-col gap-1.5 min-w-[140px]">
+        <Label htmlFor="filter-status" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Status
+        </Label>
         <Select value={status ?? ""} onValueChange={(value) => updateParam("status", value)}>
-          <SelectTrigger id="filter-status">
+          <SelectTrigger id="filter-status" className="w-full h-9 px-3">
             <SelectValue placeholder="Any status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">Any status</SelectItem>
             {STATUS_OPTIONS.map((option) => (
               <SelectItem key={option} value={option}>
-                {option}
+                {option.replace("_", " ")}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="filter-category">Category</Label>
+
+      <div className="flex flex-col gap-1.5 min-w-[140px]">
+        <Label htmlFor="filter-category" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Category
+        </Label>
         <Select value={category ?? ""} onValueChange={(value) => updateParam("category", value)}>
-          <SelectTrigger id="filter-category">
+          <SelectTrigger id="filter-category" className="w-full h-9 px-3">
             <SelectValue placeholder="Any category" />
           </SelectTrigger>
           <SelectContent>
@@ -85,10 +95,13 @@ export function IssueFilters({
           </SelectContent>
         </Select>
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="filter-priority">Priority</Label>
+
+      <div className="flex flex-col gap-1.5 min-w-[140px]">
+        <Label htmlFor="filter-priority" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Priority
+        </Label>
         <Select value={priority ?? ""} onValueChange={(value) => updateParam("priority", value)}>
-          <SelectTrigger id="filter-priority">
+          <SelectTrigger id="filter-priority" className="w-full h-9 px-3">
             <SelectValue placeholder="Any priority" />
           </SelectTrigger>
           <SelectContent>
@@ -101,10 +114,13 @@ export function IssueFilters({
           </SelectContent>
         </Select>
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="filter-sort">Sort by</Label>
+
+      <div className="flex flex-col gap-1.5 min-w-[160px]">
+        <Label htmlFor="filter-sort" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Sort by
+        </Label>
         <Select value={sort ?? "newest"} onValueChange={(value) => updateParam("sort", value)}>
-          <SelectTrigger id="filter-sort">
+          <SelectTrigger id="filter-sort" className="w-full h-9 px-3">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -116,14 +132,17 @@ export function IssueFilters({
           </SelectContent>
         </Select>
       </div>
+
       {hasActiveFilters && (
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => router.push(pathname)}
+          className="h-9 gap-1 text-destructive border-destructive/20 bg-destructive/5 hover:bg-destructive/10 hover:text-destructive"
         >
-          Clear filters
+          <X className="size-3.5" />
+          <span>Clear filters</span>
         </Button>
       )}
     </div>
